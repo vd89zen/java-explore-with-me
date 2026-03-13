@@ -1,14 +1,70 @@
 services:
   stats-server:
+    build: stats/stats-server
+    image: ewm-stats-server
+    container_name: ewm-stats-server
     ports:
       - "9090:9090"
+    depends_on:
+      stats-db:
+        condition: service_healthy
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://stats-db:5432/ewm-stats
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=root
+      - SERVER_PORT=9090
+      - SERVER_ADDRESS=0.0.0.0
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://0.0.0.0:9090/actuator/health" ]
+      interval: 30s
+      timeout: 20s
+      retries: 10
+      start_period: 120s
 
   stats-db:
     image: postgres:16.1
+    container_name: postgres-ewm-stats-db
+    ports:
+      - "6541:5432"
+    environment:
+      - POSTGRES_PASSWORD=root
+      - POSTGRES_USER=root
+      - POSTGRES_DB=ewm-stats
+    healthcheck:
+      test: pg_isready -q -d $$POSTGRES_DB -U $$POSTGRES_USER
+      timeout: 5s
+      interval: 5s
+      retries: 10
 
   ewm-service:
+    build: main-service
+    image: ewm-main-service
+    container_name: ewm-main-service
     ports:
       - "8080:8080"
+    depends_on:
+      ewm-db:
+        condition: service_healthy
+      stats-server:
+        condition: service_healthy
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://ewm-db:5432/ewm-main
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=root
+      - SPRING_APPLICATION_NAME=ewm-main-service
+      - STATS_SERVICE_URL=http://stats-server:9090
 
   ewm-db:
     image: postgres:16.1
+    container_name: postgres-ewm-main-db
+    ports:
+      - "6542:5432"
+    environment:
+      - POSTGRES_PASSWORD=root
+      - POSTGRES_USER=root
+      - POSTGRES_DB=ewm-main
+    healthcheck:
+      test: pg_isready -q -d $$POSTGRES_DB -U $$POSTGRES_USER
+      timeout: 5s
+      interval: 5s
+      retries: 10
