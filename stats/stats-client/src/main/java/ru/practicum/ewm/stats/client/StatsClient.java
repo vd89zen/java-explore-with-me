@@ -20,7 +20,7 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class StatsClient {
-    private final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+    private final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
     private final RestTemplate restTemplate;
 
     @Value("${stats.service.url:http://localhost:9090}")
@@ -59,8 +59,8 @@ public class StatsClient {
             throw new IllegalArgumentException("Start and end dates must not be null");
         }
 
-        String startParam = start.format(FORMATTER);
-        String endParam = end.format(FORMATTER);
+        String startParam = start.format(formatter);
+        String endParam = end.format(formatter);
 
         UriComponentsBuilder uriBuilder = UriComponentsBuilder
                 .fromHttpUrl(statsServiceUrl + "/stats")
