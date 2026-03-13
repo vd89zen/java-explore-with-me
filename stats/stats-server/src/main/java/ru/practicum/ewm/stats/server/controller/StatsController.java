@@ -34,7 +34,7 @@ public class StatsController {
                 .build();
     }
 
-    @GetMapping(path ="/stats")
+    @GetMapping(path = "/stats")
     public ResponseEntity<List<ViewStats>> getStats(
             @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime start,
             @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime end,
