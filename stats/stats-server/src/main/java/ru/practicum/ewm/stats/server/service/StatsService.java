@@ -1,6 +1,7 @@
 package ru.practicum.ewm.stats.server.service;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -15,18 +16,22 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class StatsService {
     private final StatsRepository statsRepository;
 
     public void saveHit(EndpointHit hitDto) {
+        log.info("Сохраняем обращение к эндпоинту: {}", hitDto);
         EndpointHitEntity hitEntity = EndpointHitMapper.toEntity(hitDto);
         statsRepository.save(hitEntity);
+        log.info("Сохранено в БД обращение к эндпоинту: {}", hitDto);
     }
 
     public List<ViewStats> getStats(LocalDateTime start, LocalDateTime end,
                                     List<String> uris, boolean unique, int page, int size) {
+        log.info("Получаем статистику обращений к эндпоинтам {} за период {} - {}", uris, start, end);
 
         List<ViewStatsProjection> projections;
 
@@ -41,9 +46,11 @@ public class StatsService {
                     : statsRepository.getStats(start, end, uris);
         }
 
-        return projections.stream()
+        List<ViewStats> stats = projections.stream()
                 .map(this::toViewStats)
                 .collect(Collectors.toList());
+        log.info("Получена статистика обращений к эндпоинтам: {}", stats);
+        return stats;
     }
 
     private ViewStats toViewStats(ViewStatsProjection projection) {

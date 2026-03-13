@@ -6,7 +6,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 import ru.practicum.ewm.stats.dto.EndpointHit;
@@ -28,6 +27,7 @@ public class StatsClient {
     private final String statsServiceUrl;
 
     public void sendHit(String app, String uri, String ip) {
+        log.info("Готовим отправку в сервис статистики факта обращения к эндпоинту: app {}, uri {}, ip {}", app, uri, ip);
         EndpointHit hitDto = EndpointHit.builder()
                 .app(app)
                 .uri(uri)
@@ -54,7 +54,7 @@ public class StatsClient {
 
     public List<ViewStats> getStats(LocalDateTime start, LocalDateTime end,
                                     List<String> uris, boolean unique, Integer page, Integer size) {
-
+        log.info("Готовим отправку запроса статистики обращений к эндпоинтам {} за период {} - {}", uris, start, end);
         if (start == null || end == null) {
             throw new IllegalArgumentException("Start and end dates must not be null");
         }
