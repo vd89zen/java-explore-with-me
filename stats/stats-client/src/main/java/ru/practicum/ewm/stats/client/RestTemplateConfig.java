@@ -1,23 +1,26 @@
 package ru.practicum.ewm.stats.client;
 
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
-import org.springframework.boot.web.client.RestTemplateBuilder;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.client.RestTemplate;
-
+import org.springframework.boot.web.client.RestTemplateBuilder;
 import java.time.Duration;
 
 @Configuration
 public class RestTemplateConfig {
 
+    @Value("${stats.service.connect-timeout:10s}")
+    private Duration connectTimeout;
+
+    @Value("${stats.service.read-timeout:20s}")
+    private Duration readTimeout;
+
     @Bean
-    @ConditionalOnMissingBean(RestTemplate.class)
     public RestTemplate restTemplate(RestTemplateBuilder builder) {
         return builder
-                .setConnectTimeout(Duration.ofSeconds(5))
-                .setReadTimeout(Duration.ofSeconds(10))
+                .setConnectTimeout(connectTimeout)
+                .setReadTimeout(readTimeout)
                 .build();
     }
 }
-
