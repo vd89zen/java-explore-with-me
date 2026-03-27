@@ -210,7 +210,7 @@ public class ValidationServiceImpl implements ValidationService {
 
         if (rangeStart != null && rangeEnd != null && rangeEnd.isBefore(rangeStart)) {
             throw new BadRequestException(String.format(
-                    "Error: rangeEnd {} не может быть меньше rangeStart {}",
+                    "Error: rangeEnd %s не может быть меньше rangeStart %s",
                     rangeEnd, rangeStart));
         }
     }

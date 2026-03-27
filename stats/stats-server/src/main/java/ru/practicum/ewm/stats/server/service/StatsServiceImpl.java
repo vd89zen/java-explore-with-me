@@ -91,7 +91,7 @@ public class StatsServiceImpl implements StatsService {
 
         if (rangeEnd.isBefore(rangeStart)) {
             throw new BadRequestException(String.format(
-                    "Error: rangeEnd {} не может быть меньше rangeStart {}",
+                    "Error: rangeEnd %s не может быть меньше rangeStart %s",
                     rangeEnd, rangeStart));
         }
     }
