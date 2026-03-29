@@ -1,11 +1,11 @@
 package ru.practicum.ewm.stats.server.controller;
 
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.PositiveOrZero;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -14,8 +14,6 @@ import org.springframework.web.bind.annotation.*;
 import ru.practicum.ewm.stats.dto.EndpointHit;
 import ru.practicum.ewm.stats.dto.ViewStats;
 import ru.practicum.ewm.stats.server.service.StatsService;
-
-import java.time.LocalDateTime;
 import java.util.List;
 
 @RestController
@@ -36,8 +34,8 @@ public class StatsController {
 
     @GetMapping(path = "/stats")
     public ResponseEntity<List<ViewStats>> getStats(
-            @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime start,
-            @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime end,
+            @RequestParam @NotBlank String start,
+            @RequestParam @NotBlank String end,
             @RequestParam (required = false) List<String> uris,
             @RequestParam(defaultValue = "false") boolean unique,
             @PositiveOrZero @RequestParam(name = "page", defaultValue = "0") int page,

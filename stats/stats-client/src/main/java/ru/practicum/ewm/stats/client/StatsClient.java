@@ -1,6 +1,5 @@
 package ru.practicum.ewm.stats.client;
 
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
@@ -18,13 +17,16 @@ import java.util.List;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class StatsClient {
-    private final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+    private final DateTimeFormatter formatter = DateTimeFormatter.ISO_LOCAL_DATE_TIME;
     private final RestTemplate restTemplate;
-
-    @Value("${stats.service.url:http://localhost:9090}")
     private final String statsServiceUrl;
+
+    public StatsClient(RestTemplate restTemplate,
+                       @Value("${stats.service.url:http://localhost:9090}") String statsServiceUrl) {
+        this.restTemplate = restTemplate;
+        this.statsServiceUrl = statsServiceUrl;
+    }
 
     public void sendHit(String app, String uri, String ip) {
         log.info("Готовим отправку в сервис статистики факта обращения к эндпоинту: app {}, uri {}, ip {}", app, uri, ip);
@@ -80,6 +82,7 @@ public class StatsClient {
         HttpEntity<Void> request = new HttpEntity<>(headers);
 
         try {
+            log.info("uriBuilder.toUriString() - {}\n request - {}", uriBuilder.toUriString(), request);
             ResponseEntity<List<ViewStats>> response = restTemplate.exchange(
                     uriBuilder.toUriString(),
                     HttpMethod.GET,
