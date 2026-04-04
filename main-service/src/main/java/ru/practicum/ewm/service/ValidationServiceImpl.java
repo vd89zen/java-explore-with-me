@@ -3,10 +3,14 @@ package ru.practicum.ewm.service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import ru.practicum.ewm.dto.request.CommentStatusUpdateRequest;
 import ru.practicum.ewm.exception.BadRequestException;
 import ru.practicum.ewm.exception.ConflictException;
+import ru.practicum.ewm.exception.ForbiddenException;
 import ru.practicum.ewm.exception.NotFoundException;
+import ru.practicum.ewm.model.Comment;
 import ru.practicum.ewm.model.Event;
+import ru.practicum.ewm.model.enums.CommentStatus;
 import ru.practicum.ewm.model.enums.EventState;
 import ru.practicum.ewm.model.utils.NotFound;
 import ru.practicum.ewm.model.enums.RequestStatus;
@@ -14,6 +18,8 @@ import ru.practicum.ewm.repository.*;
 import ru.practicum.ewm.service.api.ValidationService;
 
 import java.time.LocalDateTime;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -29,6 +35,15 @@ public class ValidationServiceImpl implements ValidationService {
     private final CompilationRepository compilationRepository;
 
     // валидация событий
+    @Override
+    public void checkEventExists(Long eventId) {
+        log.info("Проверяем существует ли событие id {}", eventId);
+        if (eventRepository.existsById(eventId) == false) {
+            throw new NotFoundException(
+                    String.format(NotFound.EVENT, eventId));
+        }
+    }
+
     @Override
     public void validateEventDateForCreateOrUpdate(LocalDateTime eventDate) {
         LocalDateTime now = LocalDateTime.now();
@@ -92,7 +107,7 @@ public class ValidationServiceImpl implements ValidationService {
         }
     }
 
-    // валидация пользователей
+    // валидация пользователя
     @Override
     public void checkUserExists(Long userId) {
         log.info("Проверяем существует ли пользователь id {}", userId);
@@ -117,7 +132,7 @@ public class ValidationServiceImpl implements ValidationService {
         log.info("Проверяем условия для удаления категории {}", catId);
         checkCategoryExists(catId);
         if (eventRepository.existsEventsByCategoryId(catId)) {
-                throw new ConflictException("The category is not empty");
+            throw new ConflictException("The category is not empty");
         }
     }
 
@@ -213,5 +228,151 @@ public class ValidationServiceImpl implements ValidationService {
                     "Error: rangeEnd %s не может быть меньше rangeStart %s",
                     rangeEnd, rangeStart));
         }
+    }
+
+    // валидация комментария
+    @Override
+    public void checkReasonDeleteIsGiven(CommentStatusUpdateRequest statusUpdateRequest) {
+        log.info("Проверяем указание причины удаления если новый статус комментария 'deleted'", statusUpdateRequest);
+
+        CommentStatus newStatus = checkAndGetCommentStatus(statusUpdateRequest.getStatus());
+
+        if (newStatus.equals(CommentStatus.DELETED) || newStatus.equals(CommentStatus.CENSURED)) {
+            String reason = statusUpdateRequest.getReasonDelete();
+            if (reason == null || reason.isBlank()) {
+                throw new BadRequestException("Не указана причина удаления/цензуры комментария.");
+            }
+        }
+    }
+
+    @Override
+    public void checkCommentWasCreatedByCommenter(List<Comment> comments, Long userId) {
+        log.info("Проверяем принадлежность комментариев {} пользователю id {}", comments, userId);
+
+        List<Long> wrongCommentIds = comments.stream()
+                .filter(c -> c.getCommenter().getId().equals(userId) == false)
+                .map(Comment::getId)
+                .collect(Collectors.toList());
+
+        if (wrongCommentIds.isEmpty() == false) {
+            throw new ConflictException("Comments - " + wrongCommentIds + " - not belong to user id " + userId);
+        }
+    }
+
+    @Override
+    public void checkCommentsBelongEvent(List<Comment> comments, Long eventId) {
+        log.info("Проверяем принадлежность комментариев {} событию id {}", comments, eventId);
+
+        List<Long> wrongCommentIds = comments.stream()
+                .filter(c -> c.getEvent().getId().equals(eventId) == false)
+                .map(Comment::getId)
+                .collect(Collectors.toList());
+
+        if (wrongCommentIds.isEmpty() == false) {
+            throw new ConflictException("Comments - " + wrongCommentIds + " - not belong to event id " + eventId);
+        }
+    }
+
+    @Override
+    public CommentStatus checkAndGetCommentStatus(String status) {
+        log.info("Проверяем статус комментария на валидность: {}", status);
+        return CommentStatus.from(status)
+                .orElseThrow(() -> new BadRequestException("Unknown comment status: " + status));
+    }
+
+    @Override
+    public void checkCommentStatusAccessibleForEventOwner(CommentStatus status) {
+        log.info("Проверяем доступность комментария по статусу для владельца события: {}", status);
+        if (getCommentStatusExcludedForEventOwner().contains(status)) {
+            new ForbiddenException("You do not have permission to get comment with this status: " + status);
+        };
+    }
+
+    @Override
+    public Set<CommentStatus> checkAndGetCommentStatusForEventOwner(String status) {
+        log.info("Проверяем статус комментария для показа создателю комментированного события: {}", status);
+
+        if (status == null) {
+            return getCommentStatusEventOwnerAccessible();
+        } else {
+            CommentStatus commentStatus = checkAndGetCommentStatus(status);
+            checkCommentStatusAccessibleForEventOwner(commentStatus);
+            return Set.of(commentStatus);
+        }
+    }
+
+    @Override
+    public void checkCommentStatusChangeCommenter(CommentStatus newStatus, CommentStatus oldStatus) {
+        log.info("Проверяем допустимость смены статуса комментария создателем комментария: new {} - old {}",
+                newStatus, oldStatus);
+
+        if (newStatus.equals(CommentStatus.DELETED) && oldStatus.equals(CommentStatus.POSTED)) {
+            return;
+        }
+
+        throw new ConflictException(String.format("Commentator can't change comment status %s to %s.",
+                oldStatus.name(), newStatus));
+    }
+
+    @Override
+    public void checkCommentStatusChangeEventOwner(CommentStatus newStatus, CommentStatus oldStatus) {
+        log.info("Проверяем допустимость смены статуса комментария создателем события: new {} - old {}",
+                newStatus, oldStatus);
+
+        if (newStatus.equals(CommentStatus.POSTED) || newStatus.equals(CommentStatus.REJECTED)) {
+            if (oldStatus.equals(CommentStatus.PENDING) || oldStatus.equals(CommentStatus.UPDATED)) {
+                return;
+            }
+        }
+
+        if (newStatus.equals(CommentStatus.DELETED) && oldStatus.equals(CommentStatus.POSTED)) {
+            return;
+        }
+
+        throw new ConflictException(String.format("Event owner can't change comment status %s to %s.",
+                oldStatus.name(), newStatus));
+    }
+
+    @Override
+    public void checkCommentStatusChangeAdmin(CommentStatus newStatus, CommentStatus oldStatus) {
+        log.info("Проверяем допустимость смены статуса комментария админом: new {} - old {}",
+                newStatus, oldStatus);
+
+        if (newStatus.equals(CommentStatus.PENDING) || newStatus.equals(CommentStatus.POSTED)) {
+            if (oldStatus.equals(CommentStatus.REJECTED) || oldStatus.equals(CommentStatus.DELETED) ||
+                    oldStatus.equals(CommentStatus.CENSURED)) {
+                return;
+            }
+        }
+
+        if (newStatus.equals(CommentStatus.DELETED) || newStatus.equals(CommentStatus.CENSURED)) {
+            if (oldStatus.equals(CommentStatus.POSTED)) {
+                return;
+            }
+        }
+
+        throw new ConflictException(String.format("Admin can't change comment status %s to %s.",
+                oldStatus.name(), newStatus));
+    }
+
+    /**
+     * Возвращает набор статусов комментария, при которых комментарий доступен для владельца события.
+     */
+    @Override
+    public Set<CommentStatus> getCommentStatusEventOwnerAccessible() {
+        Set<CommentStatus> excluded = getCommentStatusExcludedForEventOwner();
+        return EnumSet.copyOf(
+                Arrays.stream(CommentStatus.values())
+                        .filter(cs -> excluded.contains(cs) == false)
+                        .collect(Collectors.toCollection(() -> EnumSet.noneOf(CommentStatus.class)))
+        );
+    }
+
+    /**
+     * Возвращает набор статусов комментариев, которые исключаются (не должны учитываться)
+     * при фильтрации для владельца события.
+     */
+    private Set<CommentStatus> getCommentStatusExcludedForEventOwner() {
+        return EnumSet.of(CommentStatus.REJECTED, CommentStatus.DELETED, CommentStatus.CENSURED);
     }
 }

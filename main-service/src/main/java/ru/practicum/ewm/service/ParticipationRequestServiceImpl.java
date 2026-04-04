@@ -19,6 +19,7 @@ import ru.practicum.ewm.repository.ParticipationRequestRepository;
 import ru.practicum.ewm.repository.UserRepository;
 import ru.practicum.ewm.service.api.EventService;
 import ru.practicum.ewm.service.api.ParticipationRequestService;
+import ru.practicum.ewm.service.api.ValidationService;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -35,7 +36,7 @@ public class ParticipationRequestServiceImpl implements ParticipationRequestServ
     private final ParticipationRequestRepository requestRepository;
     private final UserRepository userRepository;
     private final EventService eventService;
-    private final ValidationServiceImpl validationService;
+    private final ValidationService validationService;
 
     @Override
     public List<ParticipationRequestDto> getUserRequests(Long userId) {

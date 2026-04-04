@@ -5,6 +5,7 @@ import lombok.NoArgsConstructor;
 import ru.practicum.ewm.dto.request.NewEventDto;
 import ru.practicum.ewm.dto.request.UpdateEventAdminRequest;
 import ru.practicum.ewm.dto.request.UpdateEventUserRequest;
+import ru.practicum.ewm.dto.response.EventAnnotationDto;
 import ru.practicum.ewm.dto.response.EventFullDto;
 import ru.practicum.ewm.dto.response.EventShortDto;
 import ru.practicum.ewm.model.Category;
@@ -20,6 +21,7 @@ public final class EventMapper {
     private static final Boolean REQUEST_MODERATION_DEFAULT_VALUE = true;
     private static final Boolean PAID_DEFAULT_VALUE = false;
     public static final Long NO_VIEWS = 0L;
+    public static final Long NO_COMMENTS = 0L;
 
     public static Event toEvent(NewEventDto newEventDto, User initiator, Category category) {
         return Event.builder()
@@ -41,7 +43,14 @@ public final class EventMapper {
                 .build();
     }
 
-    public static EventShortDto toEventShortDto(Event event, Long views) {
+    public static EventAnnotationDto toEventAnnotationDto(Event event) {
+        return EventAnnotationDto.builder()
+                .eventId(event.getId())
+                .annotation(event.getAnnotation())
+                .build();
+    }
+
+    public static EventShortDto toEventShortDto(Event event, Long views, Long comments) {
         return EventShortDto.builder()
                 .id(event.getId())
                 .annotation(event.getAnnotation())
@@ -52,10 +61,11 @@ public final class EventMapper {
                 .paid(event.getPaid())
                 .title(event.getTitle())
                 .views(views)
+                .comments(comments)
                 .build();
     }
 
-    public static EventFullDto toEventFullDto(Event event, Long views) {
+    public static EventFullDto toEventFullDto(Event event, Long views, Long comments) {
         return EventFullDto.builder()
                 .id(event.getId())
                 .annotation(event.getAnnotation())
@@ -73,6 +83,7 @@ public final class EventMapper {
                 .state(event.getState().name())
                 .title(event.getTitle())
                 .views(views)
+                .comments(comments)
                 .build();
     }
 

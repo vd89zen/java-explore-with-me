@@ -11,7 +11,6 @@ import ru.practicum.ewm.dto.response.CompilationDto;
 import ru.practicum.ewm.service.api.CompilationService;
 import java.util.List;
 
-@Slf4j
 @Validated
 @RestController
 @RequiredArgsConstructor

@@ -13,7 +13,6 @@ import ru.practicum.ewm.service.api.CategoryService;
 
 import java.util.List;
 
-@Slf4j
 @Validated
 @RestController
 @RequiredArgsConstructor

@@ -1,14 +1,21 @@
 package ru.practicum.ewm.service.api;
 
+import ru.practicum.ewm.dto.request.CommentStatusUpdateRequest;
+import ru.practicum.ewm.model.Comment;
 import ru.practicum.ewm.model.Event;
+import ru.practicum.ewm.model.enums.CommentStatus;
 import ru.practicum.ewm.model.enums.EventState;
 import ru.practicum.ewm.model.enums.RequestStatus;
 
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Set;
 
 public interface ValidationService {
 
     // валидация события
+    void checkEventExists(Long eventId);
+
     void validateEventDateForCreateOrUpdate(LocalDateTime eventDate);
 
     void validateEventDateForPublish(LocalDateTime eventDate, LocalDateTime publishedOn);
@@ -45,4 +52,26 @@ public interface ValidationService {
 
     // валидация дат при запросе
     void validateDateForSearch(LocalDateTime rangeStart, LocalDateTime rangeEnd);
+
+    // валидация комментария
+    void checkReasonDeleteIsGiven(CommentStatusUpdateRequest statusUpdateRequest);
+
+    void checkCommentWasCreatedByCommenter(List<Comment> comments, Long userId);
+
+    void checkCommentsBelongEvent(List<Comment> comments, Long eventId);
+
+    CommentStatus checkAndGetCommentStatus(String status);
+
+    void checkCommentStatusAccessibleForEventOwner(CommentStatus status);
+
+    Set<CommentStatus> checkAndGetCommentStatusForEventOwner(String status);
+
+    void checkCommentStatusChangeCommenter(CommentStatus newStatus, CommentStatus oldStatus);
+
+    void checkCommentStatusChangeEventOwner(CommentStatus newStatus, CommentStatus oldStatus);
+
+    void checkCommentStatusChangeAdmin(CommentStatus newStatus, CommentStatus oldStatus);
+
+    Set<CommentStatus> getCommentStatusEventOwnerAccessible();
+
 }

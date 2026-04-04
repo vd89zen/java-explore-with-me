@@ -19,7 +19,6 @@ import ru.practicum.ewm.stats.client.StatsClient;
 import java.time.LocalDateTime;
 import java.util.List;
 
-@Slf4j
 @Validated
 @RestController
 @RequiredArgsConstructor

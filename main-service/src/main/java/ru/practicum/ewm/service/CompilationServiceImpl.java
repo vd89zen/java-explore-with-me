@@ -15,6 +15,7 @@ import ru.practicum.ewm.model.Compilation;
 import ru.practicum.ewm.model.Event;
 import ru.practicum.ewm.model.utils.NotFound;
 import ru.practicum.ewm.repository.CompilationRepository;
+import ru.practicum.ewm.service.api.CommentService;
 import ru.practicum.ewm.service.api.CompilationService;
 import ru.practicum.ewm.service.api.EventService;
 import ru.practicum.ewm.service.api.ValidationService;
@@ -30,6 +31,7 @@ public class CompilationServiceImpl implements CompilationService {
     private final CompilationRepository compilationRepository;
     private final EventService eventService;
     private final ValidationService validationService;
+    private final CommentService commentService;
 
     // публичные методы
     @Override
@@ -46,9 +48,11 @@ public class CompilationServiceImpl implements CompilationService {
                 .collect(Collectors.toList());
 
         Map<Long, Long> viewsMap = eventService.getViewStatsForEvents(allEvents);
+        List<Long> eventIds = allEvents.stream().map(Event::getId).toList();
+        Map<Long, Long> commentsMap = commentService.getCountNumberOfCommentsForEvent(eventIds);
 
         return compilations.stream()
-                .map(comp -> CompilationMapper.toCompilationDto(comp, viewsMap))
+                .map(comp -> CompilationMapper.toCompilationDto(comp, viewsMap, commentsMap))
                 .collect(Collectors.toList());
     }
 
@@ -59,10 +63,10 @@ public class CompilationServiceImpl implements CompilationService {
         Compilation compilation = getCompilationOrThrow(
                 compilationRepository.findByIdWithEvents(compId), compId);
 
-        Map<Long, Long> viewsMap = eventService.getViewStatsForEvents(
-                compilation.getEvents().stream().toList());
+        Map<Long, Long> viewsMap = getViewsMap(compilation);
+        Map<Long, Long> commentsMap = getCommentsMap(compilation);
 
-        return CompilationMapper.toCompilationDto(compilation, viewsMap);
+        return CompilationMapper.toCompilationDto(compilation, viewsMap, commentsMap);
     }
 
     // методы для админа
@@ -84,10 +88,10 @@ public class CompilationServiceImpl implements CompilationService {
         compilation = compilationRepository.save(compilation);
         log.info("Добавлена подборка: {}", compilation);
 
-        Map<Long, Long> viewsMap = eventService.getViewStatsForEvents(
-                compilation.getEvents().stream().toList());
+        Map<Long, Long> viewsMap = getViewsMap(compilation);
+        Map<Long, Long> commentsMap = getCommentsMap(compilation);
 
-        return CompilationMapper.toCompilationDto(compilation, viewsMap);
+        return CompilationMapper.toCompilationDto(compilation, viewsMap, commentsMap);
     }
 
     @Override
@@ -125,10 +129,20 @@ public class CompilationServiceImpl implements CompilationService {
         compilation = compilationRepository.save(compilation);
         log.info("Обновлена подборка: {}", compilation);
 
-        Map<Long, Long> viewsMap = eventService.getViewStatsForEvents(
-                compilation.getEvents().stream().toList());
+        Map<Long, Long> viewsMap = getViewsMap(compilation);
+        Map<Long, Long> commentsMap = getCommentsMap(compilation);
 
-        return CompilationMapper.toCompilationDto(compilation, viewsMap);
+        return CompilationMapper.toCompilationDto(compilation, viewsMap, commentsMap);
+    }
+
+    private Map<Long, Long> getViewsMap(Compilation compilation) {
+        List<Event> compilationEvents = compilation.getEvents().stream().toList();
+        return eventService.getViewStatsForEvents(compilationEvents);
+    }
+
+    private Map<Long, Long> getCommentsMap(Compilation compilation) {
+        List<Long> eventIds = compilation.getEvents().stream().map(Event::getId).toList();
+        return commentService.getCountNumberOfCommentsForEvent(eventIds);
     }
 
     private Compilation getCompilationOrThrow(Optional<Compilation> compOpt, Long compId) {
