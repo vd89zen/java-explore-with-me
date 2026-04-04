@@ -284,8 +284,8 @@ public class ValidationServiceImpl implements ValidationService {
     public void checkCommentStatusAccessibleForEventOwner(CommentStatus status) {
         log.info("Проверяем доступность комментария по статусу для владельца события: {}", status);
         if (getCommentStatusExcludedForEventOwner().contains(status)) {
-            new ForbiddenException("You do not have permission to get comment with this status: " + status);
-        };
+            throw new ForbiddenException("You do not have permission to get comment with this status: " + status);
+        }
     }
 
     @Override

@@ -90,7 +90,7 @@ public class CommentServiceImpl implements CommentService {
     @Override
     @Transactional
     public CommentShortDto addComment(Long userId, NewCommentDto newCommentDto) {
-        log.info("Добавляем новый комментарий {}", userId, newCommentDto);
+        log.info("Добавляем новый комментарий {}", newCommentDto);
         User user = userService.getUserById(userId);
         Event event = eventRepository.findById(newCommentDto.getEventId())
                 .orElseThrow(() -> new NotFoundException(String.format(NotFound.EVENT, newCommentDto.getEventId())));
