@@ -22,9 +22,7 @@ import ru.practicum.ewm.model.enums.EventSort;
 import ru.practicum.ewm.model.enums.EventState;
 import ru.practicum.ewm.model.utils.NotFound;
 import ru.practicum.ewm.repository.EventRepository;
-import ru.practicum.ewm.service.api.CategoryService;
-import ru.practicum.ewm.service.api.EventService;
-import ru.practicum.ewm.service.api.UserService;
+import ru.practicum.ewm.service.api.*;
 import ru.practicum.ewm.specification.EventSpecification;
 import ru.practicum.ewm.stats.client.StatsClient;
 import ru.practicum.ewm.stats.dto.ViewStats;
@@ -42,7 +40,8 @@ public class EventServiceImpl implements EventService {
     private final UserService userService;
     private final CategoryService categoryService;
     private final StatsClient statsClient;
-    private final ValidationServiceImpl validationService;
+    private final ValidationService validationService;
+    private final CommentService commentService;
 
     // приватные методы
     @Override
@@ -60,12 +59,17 @@ public class EventServiceImpl implements EventService {
         }
 
         Map<Long, Long> viewsMap = getViewStatsForEvents(events);
-        log.info("(пользователь) Получили для объединения события: {}\n и карту просмотров: {}", events, viewsMap);
+        Map<Long, Long> commentsMap = getCommentsMapForEvents(events);
+
         return events.stream()
-                .map(event ->
-                        EventMapper.toEventShortDto(
-                                event, viewsMap
-                                        .getOrDefault(event.getId(), EventMapper.NO_VIEWS)))
+                .map(event -> {
+                    Long eventId = event.getId();
+                    EventShortDto dto = EventMapper.toEventShortDto(
+                            event,
+                            viewsMap.getOrDefault(eventId, EventMapper.NO_VIEWS),
+                            commentsMap.getOrDefault(eventId, EventMapper.NO_COMMENTS));
+                    return dto;
+                })
                 .collect(Collectors.toList());
     }
 
@@ -79,7 +83,7 @@ public class EventServiceImpl implements EventService {
         Event newEvent = EventMapper.toEvent(newEventDto, user, category);
         newEvent = eventRepository.save(newEvent);
         log.info("Добавлено новое событие: {}", newEvent);
-        return EventMapper.toEventFullDto(newEvent, EventMapper.NO_VIEWS);
+        return EventMapper.toEventFullDto(newEvent, EventMapper.NO_VIEWS, EventMapper.NO_COMMENTS);
     }
 
     @Override
@@ -90,8 +94,10 @@ public class EventServiceImpl implements EventService {
                 eventRepository.findByIdAndInitiatorId(eventId, userId), eventId);
         Long views = getViewStatsForEvents(List.of(event))
                 .getOrDefault(eventId, EventMapper.NO_VIEWS);
+        Long comments = commentService.getCountNumberOfCommentsForEvent(List.of(eventId))
+                .getOrDefault(eventId, EventMapper.NO_COMMENTS);
         log.info("(пользователь)Получили для объединения событие: {}\n и карту просмотров: {}", event, views);
-        return EventMapper.toEventFullDto(event, views);
+        return EventMapper.toEventFullDto(event, views, comments);
     }
 
     @Override
@@ -132,9 +138,11 @@ public class EventServiceImpl implements EventService {
         Event updatedEvent = eventRepository.save(event);
         Long views = getViewStatsForEvents(List.of(updatedEvent))
                 .getOrDefault(eventId, EventMapper.NO_VIEWS);
+        Long comments = getCommentsMapForEvent(eventId)
+                .getOrDefault(eventId, EventMapper.NO_COMMENTS);
 
         log.info("Пользователем обновлено событие: {}", updatedEvent);
-        return EventMapper.toEventFullDto(updatedEvent, views);
+        return EventMapper.toEventFullDto(updatedEvent, views, comments);
     }
 
     // публичные методы
@@ -178,11 +186,17 @@ public class EventServiceImpl implements EventService {
         }
 
         Map<Long, Long> viewsMap = getViewStatsForEvents(events);
+        Map<Long, Long> commentsMap = getCommentsMapForEvents(events);
 
         List<EventShortDto> result = events.stream()
-                .map(event -> EventMapper.toEventShortDto(
-                        event, viewsMap
-                                .getOrDefault(event.getId(), EventMapper.NO_VIEWS)))
+                .map(event -> {
+                    Long eventId = event.getId();
+                    EventShortDto dto = EventMapper.toEventShortDto(
+                            event,
+                            viewsMap.getOrDefault(eventId, EventMapper.NO_VIEWS),
+                            commentsMap.getOrDefault(eventId, EventMapper.NO_COMMENTS));
+                    return dto;
+                })
                 .collect(Collectors.toList());
 
         if (sort == EventSort.VIEWS) {
@@ -199,8 +213,9 @@ public class EventServiceImpl implements EventService {
                 eventRepository.findByIdAndState(eventId, EventState.PUBLISHED), eventId);
         Long views = getViewStatsForEvents(List.of(event))
                 .getOrDefault(eventId, EventMapper.NO_VIEWS);
-        log.info("(гость)Получили для объединения событие: {}\n и карту просмотров: {}", event, views);
-        return EventMapper.toEventFullDto(event, views);
+        Long comments = getCommentsMapForEvent(eventId)
+                .getOrDefault(eventId, EventMapper.NO_COMMENTS);
+        return EventMapper.toEventFullDto(event, views, comments);
     }
 
     // методы для админа
@@ -223,11 +238,17 @@ public class EventServiceImpl implements EventService {
         List<Event> events = eventRepository.findAll(spec, pageable).getContent();
 
         Map<Long, Long> viewsMap = getViewStatsForEvents(events);
-        log.info("(админ) Получили для объединения события: {}\n и карту просмотров: {}", events, viewsMap);
+        Map<Long, Long> commentsMap = getCommentsMapForEvents(events);
+
         return events.stream()
-                .map(event -> EventMapper.toEventFullDto(
-                        event, viewsMap
-                                .getOrDefault(event.getId(),EventMapper.NO_VIEWS)))
+                .map(event -> {
+                    Long eventId = event.getId();
+                    EventFullDto dto = EventMapper.toEventFullDto(
+                            event,
+                            viewsMap.getOrDefault(eventId, EventMapper.NO_VIEWS),
+                            commentsMap.getOrDefault(eventId, EventMapper.NO_COMMENTS));
+                    return dto;
+                })
                 .collect(Collectors.toList());
     }
 
@@ -272,9 +293,11 @@ public class EventServiceImpl implements EventService {
 
         Long views = getViewStatsForEvents(List.of(updatedEvent))
                 .getOrDefault(eventId, EventMapper.NO_VIEWS);
+        Long comments = getCommentsMapForEvent(eventId)
+                .getOrDefault(eventId, EventMapper.NO_COMMENTS);
 
         log.info("Админом обновлено событие: {}", updatedEvent);
-        return EventMapper.toEventFullDto(updatedEvent, views);
+        return EventMapper.toEventFullDto(updatedEvent, views, comments);
     }
 
     // вспомогательные методы
@@ -349,9 +372,25 @@ public class EventServiceImpl implements EventService {
     }
 
     @Override
+    public Event getEventById(Long eventId) {
+        log.info("Получаем сущность события id {}", eventId);
+        return getEventOrThrow(
+                eventRepository.findById(eventId), eventId);
+    }
+
+    @Override
     public List<Event> getAllEventById(Set<Long> ids) {
         log.info("Получаем события ids {}", ids);
         return eventRepository.findAllById(ids);
+    }
+
+    private Map<Long, Long> getCommentsMapForEvents(List<Event> events) {
+        List<Long> eventIds = events.stream().map(Event::getId).toList();
+        return commentService.getCountNumberOfCommentsForEvent(eventIds);
+    }
+
+    private Map<Long, Long> getCommentsMapForEvent(Long eventId) {
+        return commentService.getCountNumberOfCommentsForEvent(List.of(eventId));
     }
 
     private Event getEventOrThrow(Optional<Event> eventOpt, Long eventId) {

@@ -60,6 +60,18 @@ public class GlobalExceptionHandler {
                 .build();
     }
 
+    @ExceptionHandler(ForbiddenException.class)
+    @ResponseStatus(HttpStatus.FORBIDDEN)
+    public ApiError handleForbidden(final ForbiddenException e) {
+        log.error("403 Forbidden: {}", e.getMessage(), e);
+        return ApiError.builder()
+                .status(HttpStatus.FORBIDDEN)
+                .reason("Not have permission.")
+                .message(e.getMessage())
+                .timestamp(LocalDateTime.now().format(FORMATTER))
+                .build();
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ApiError handleMethodArgumentNotValid(final MethodArgumentNotValidException e) {
@@ -158,7 +170,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-    public ApiError handleInternalServerError(final Exception e) {
+    public ApiError handleException(final Exception e) {
         log.error("500 Internal Server Error: {}", e.getMessage(), e);
 
         return ApiError.builder()

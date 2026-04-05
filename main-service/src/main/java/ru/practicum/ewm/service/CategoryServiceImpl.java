@@ -15,6 +15,7 @@ import ru.practicum.ewm.model.Category;
 import ru.practicum.ewm.model.utils.NotFound;
 import ru.practicum.ewm.repository.CategoryRepository;
 import ru.practicum.ewm.service.api.CategoryService;
+import ru.practicum.ewm.service.api.ValidationService;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -25,7 +26,7 @@ import java.util.stream.Collectors;
 @Transactional(readOnly = true)
 public class CategoryServiceImpl implements CategoryService {
     private final CategoryRepository categoryRepository;
-    private final ValidationServiceImpl validationService;
+    private final ValidationService validationService;
 
     @Override
     @Transactional

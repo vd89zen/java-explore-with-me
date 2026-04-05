@@ -4,6 +4,7 @@ import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import ru.practicum.ewm.dto.request.NewCompilationDto;
 import ru.practicum.ewm.dto.response.CompilationDto;
+import ru.practicum.ewm.dto.response.EventShortDto;
 import ru.practicum.ewm.model.Compilation;
 import ru.practicum.ewm.model.Event;
 
@@ -25,15 +26,20 @@ public final class CompilationMapper {
     }
 
     public static CompilationDto toCompilationDto(Compilation compilation,
-                                           Map<Long, Long> viewsMap) {
+                                           Map<Long, Long> viewsMap, Map<Long, Long> commentsMap) {
         return CompilationDto.builder()
                 .id(compilation.getId())
                 .pinned(compilation.getPinned())
                 .title(compilation.getTitle())
                 .events(compilation.getEvents().stream()
-                        .map(event -> EventMapper.toEventShortDto(
-                                event, viewsMap
-                                        .getOrDefault(event.getId(), EventMapper.NO_VIEWS)))
+                        .map(event -> {
+                            Long eventId = event.getId();
+                            EventShortDto dto = EventMapper.toEventShortDto(
+                                    event,
+                                    viewsMap.getOrDefault(eventId, EventMapper.NO_VIEWS),
+                                    commentsMap.getOrDefault(eventId, EventMapper.NO_COMMENTS));
+                            return dto;
+                        })
                         .collect(Collectors.toSet()))
                 .build();
     }

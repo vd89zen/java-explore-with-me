@@ -5,25 +5,24 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import ru.practicum.ewm.dto.common.CategoryDto;
+
 import java.time.LocalDateTime;
 
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
 @Data
-public class EventShortDto {
+public class CommentShortDto {
     private Long id;
-    private String annotation;
-    private CategoryDto category;
-    private Long confirmedRequests;
+    private Long eventId;
+    private UserShortDto commenter;
+    private String text;
 
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-    private LocalDateTime eventDate;
+    private LocalDateTime createdOn;
 
-    private UserShortDto initiator;
-    private Boolean paid;
-    private String title;
-    private Long views;
-    private Long comments;
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private LocalDateTime updatedOn;
+
+    private String status;
 }

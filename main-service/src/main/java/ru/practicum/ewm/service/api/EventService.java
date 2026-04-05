@@ -44,6 +44,8 @@ public interface EventService {
 
     Event getEventByIdWithLock(Long eventId);
 
+    Event getEventById(Long eventId);
+
     List<Event> getAllEventById(Set<Long> ids);
 
     void updateConfirmedRequests(Long eventId);

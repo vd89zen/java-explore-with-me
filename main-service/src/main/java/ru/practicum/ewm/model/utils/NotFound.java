@@ -10,4 +10,5 @@ public final class NotFound {
     public static final String EVENT = "Event with id=%d was not found";
     public static final String COMPILATION = "Compilation with id=%d was not found";
     public static final String REQUEST = "Request with id=%d was not found";
+    public static final String COMMENT = "Comment with id=%d was not found";
 }
