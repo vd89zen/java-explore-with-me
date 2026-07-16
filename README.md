@@ -1,2 +1,2 @@
 # java-explore-with-me
-Repository for ExploreWithMe project.
+Repository for ExploreWithMe project: дипломный проект.
